@@ -115,90 +115,24 @@ fi
 }
 
 function first_setup(){
-clear
-print_install "Create Direktori Xray"
+print_install "Membuat direktori xray"
 mkdir -p /etc/xray
-curl -s ipv4.icanhazip.com > /etc/xray/ipvps
 touch /etc/xray/domain
 mkdir -p /var/log/xray
-chown www-data:www-data /var/log/xray
+chown www-data.www-data /var/log/xray
 chmod +x /var/log/xray
 touch /var/log/xray/access.log
 touch /var/log/xray/error.log
 mkdir -p /var/lib/kyt >/dev/null 2>&1
-
-while IFS=":" read -r a b; do
-case $a in
-    "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
-    "Shmem") ((mem_used+=${b/kB}))  ;;
-    "MemFree" | "Buffers" | "Cached" | "SReclaimable")
-    mem_used="$((mem_used-=${b/kB}))"
-;;
-esac
-done < /proc/meminfo
-Ram_Usage="$((mem_used / 1024))"
-Ram_Total="$((mem_total / 1024))"
 tanggal=`date -d "0 days" +"%d-%m-%Y - %X" `
 OS_Name=$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/PRETTY_NAME//g' | sed 's/=//g' | sed 's/"//g' )
 Kernel=$( uname -r )
 Arch=$( uname -m )
-IP=$( curl -sS ipv4.icanhazip.com )
-print_success "Create Direktori Xray"
-
-clear
-
-print_install "Instalasi Haproxy"
+IP=$( curl -s ipv4.icanhazip.com )
 timedatectl set-timezone Asia/Jakarta
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
-OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')
-echo "Setup Dependencies for $OS_NAME"
-# Update sebelum instalasi
-sudo apt update -y
-# Cek jika OS lebih baru dan membutuhkan libssl1.1
-if ! dpkg -s libssl1.1 >/dev/null 2>&1; then
-    echo "libssl1.1 tidak ditemukan, memeriksa kebutuhan instalasi..."
-    
-    # Cek versi Debian atau Ubuntu
-    if [[ $OS_ID == "ubuntu" ]]; then
-        UBUNTU_VERSION=$(grep -w VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
-        if (( $(echo "$UBUNTU_VERSION >= 22.04" | bc -l) )); then
-            echo "Ubuntu $UBUNTU_VERSION terdeteksi, menambahkan repo untuk libssl1.1..."
-            echo "deb http://snapshot.debian.org/archive/debian/20210731T150000Z buster main" | sudo tee /etc/apt/sources.list.d/buster.list
-            sudo apt update
-            sudo apt install -y libssl1.1 --allow-downgrades
-        fi
-    elif [[ $OS_ID == "debian" ]]; then
-        DEBIAN_VERSION=$(grep -w VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
-        if (( $(echo "$DEBIAN_VERSION >= 12" | bc -l) )); then
-            echo "Debian $DEBIAN_VERSION terdeteksi, menambahkan repo untuk libssl1.1..."
-            echo "deb http://snapshot.debian.org/archive/debian/20210731T150000Z buster main" | sudo tee /etc/apt/sources.list.d/buster.list
-            sudo apt update
-            sudo apt install -y libssl1.1 --allow-downgrades
-        fi
-    fi
-else
-    echo "libssl1.1 sudah terinstal atau tidak diperlukan."
-fi
-
-# Instalasi HAProxy
-if [[ $OS_ID == "ubuntu" ]]; then
-    echo "Menginstal HAProxy untuk Ubuntu..."
-    apt-get install --no-install-recommends software-properties-common -y
-    add-apt-repository ppa:vbernat/haproxy-2.0 -y
-    apt-get -y install haproxy=2.0.*
-elif [[ $OS_ID == "debian" ]]; then
-    echo "Menginstal HAProxy untuk Debian..."
-    curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-1.8 main > /etc/apt/sources.list.d/haproxy.list
-    sudo apt-get update
-    apt-get -y install haproxy=1.8.*
-else
-    echo -e "Your OS is not supported ($OS_NAME)"
-    exit 1
-fi
-print_success "Instalasi Haproxy"
+print_success "Directory Xray"
 }
 
 function nginx_install() {
@@ -218,30 +152,61 @@ fi
 function base_package() {
 clear
 print_install "Instalasi Packet Yang Dibutuhkan"
-apt install zip pwgen openssl netcat socat cron bash-completion -y
-apt install figlet -y
 apt update -y
-apt upgrade -y
-apt dist-upgrade -y
-systemctl enable chronyd
-systemctl restart chronyd
-systemctl enable chrony
-systemctl restart chrony
-chronyc sourcestats -v
-chronyc tracking -v
-apt install ntpdate -y
-ntpdate pool.ntp.org
 apt install sudo -y
 sudo apt-get clean all
-sudo apt-get autoremove -y
-sudo apt-get install -y debconf-utils
-sudo apt-get remove --purge exim4 -y
-sudo apt-get remove --purge ufw firewalld -y
-sudo apt-get install -y --no-install-recommends software-properties-common
+apt install -y debconf-utils
+apt install p7zip-full at -y
+apt-get remove --purge ufw firewalld -y
+apt-get remove --purge exim4 -y
+apt-get autoremove -y
+apt install -y --no-install-recommends software-properties-common
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
+sudo DEBIAN_FRONTEND=noninteractive apt-get -y install iptables iptables-persistent netfilter-persistent libxml-parser-perl squid screen curl jq bzip2 gzip coreutils zip unzip net-tools sed bc apt-transport-https build-essential dirmngr libxml-parser-perl lsof openvpn easy-rsa fail2ban tmux squid dropbear socat cron bash-completion ntpdate xz-utils apt-transport-https chrony pkg-config bison make git speedtest-cli p7zip-full zlib1g-dev python-is-python3 python3-pip build-essential nginx p7zip-full squid libcurl4-openssl-dev
+sudo apt-get autoclean -y >/dev/null 2>&1
+audo apt-get -y --purge removd unscd >/dev/null 2>&1
+sudo apt-get -y --purge remove samba* >/dev/null 2>&1
+sudo apt-get -y --purge remove bind9* >/dev/null 2>&1
+sudo apt-get -y remove sendmail* >/dev/null 2>&1
+apt autoremove -y >/dev/null 2>&1
 print_success "Packet Yang Dibutuhkan"
+}
+
+function haproxy_install(){
+clear
+OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
+OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')
+echo "Setup Dependencies for $OS_NAME"
+# Update sebelum instalasi
+sudo apt update -y
+# Cek jika OS lebih baru dan membutuhkan libssl1.1
+if ! dpkg -s libssl1.1 >/dev/null 2>&1; then
+    echo "libssl1.1 tidak ditemukan, memeriksa kebutuhan instalasi..."
+    echo "deb http://snapshot.debian.org/archive/debian/20210731T150000Z buster main" | sudo tee /etc/apt/sources.list.d/buster.list
+    sudo apt update
+    sudo apt install -y libssl1.1 --allow-downgrades
+else
+    echo "libssl1.1 sudah terinstal atau tidak diperlukan."
+fi
+
+# Instalasi HAProxy
+if [[ $OS_ID == "ubuntu" ]]; then
+    echo "Menginstal Haproxy untuk Ubuntu..."
+    apt-get install --no-install-recommends software-properties-common -y
+    add-apt-repository ppa:vbernat/haproxy-2.0 -y
+    apt-get -y install haproxy=2.0.*
+elif [[ $OS_ID == "debian" ]]; then
+    echo "Menginstal Haproxy untuk Debian..."
+    curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-1.8 main > /etc/apt/sources.list.d/haproxy.list
+    sudo apt-get update
+    apt-get -y install haproxy=1.8.*
+else
+    echo -e "Your OS is not supported ($OS_NAME)"
+    exit 1
+fi
+print_success "Instalasi Haproxy"
 }
 
 function pasang_domain() {
@@ -900,6 +865,7 @@ clear
 first_setup
 nginx_install
 base_package
+haproxy_install
 make_folder_xray
 pasang_domain
 password_default
