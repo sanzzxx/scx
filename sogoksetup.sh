@@ -1,14 +1,9 @@
 #!/bin/bash
-# https://t.me/Gemilangkinasih
+# https://t.me/gemilangkinasih
 
 rm -rf "$0" 2>/dev/null
 rm -rf autoscript 2>/dev/null
 rm -rf sogoksetup.sh 2>/dev/null
-
-apt install curl
-apt install ruby -y
-gem install lolcat
-apt install wondershaper -y
 
 Green="\e[92;1m"
 RED="\033[31m"
@@ -23,14 +18,15 @@ NC='\e[0m'
 red='\e[1;31m'
 green='\e[0;32m'
 
-clear
+apt install curl
 IP=$( curl -sS ipv4.icanhazip.com )
+clear
 echo -e "\e[33m──────────────────────────────────────────\033[0m"
 echo -e "\E[40;1;37m      INFORMATION AUTOSCRIPT PREMIUM      \E[0m"
 echo -e "\e[33m──────────────────────────────────────────\033[0m"
 echo -e "Developer   : Gemilang Kinasih (${GREEN}Latest Edition${NC})"
-echo -e "Copyright   : ${GREEN}Gemilang Kinasih 2025${NC}"
-echo -e "OS Support  : Debian & Ubuntu All OS Versions"
+echo -e "Copyright   : ${GREEN}Gemilang Kinasih $(date +%Y)${NC}"
+echo -e "Os Support  : Debian & Ubuntu OS All Versions"
 echo -e "\e[33m──────────────────────────────────────────\033[0m"
 echo ""
 sleep 3
@@ -71,9 +67,15 @@ fi
 
 clear
 MYIP=$(curl -sS ipv4.icanhazip.com)
-REPO="https://raw.githubusercontent.com/sanzzxx/scx/main/"
-start=$(date +%s)
+apt install ruby -y
+gem install lolcat
+apt install wondershaper -y
+clear
 
+# LINK REPO
+REPO="https://raw.githubusercontent.com/sanzzxx/scx/main/"
+
+start=$(date +%s)
 secs_to_human() {
 echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
 }
@@ -81,7 +83,6 @@ echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's 
 function print_ok() {
 echo -e "${OK} ${BLUE} $1 ${FONT}"
 }
-
 function print_install() {
 clear
 echo -e "\e[33m──────────────────────────────────────────\033[0m"
@@ -113,6 +114,19 @@ else
 fi
 }
 
+function first_setup(){
+clear
+print_install "Create Direktori Xray"
+mkdir -p /etc/xray
+curl -s ipv4.icanhazip.com > /etc/xray/ipvps
+touch /etc/xray/domain
+mkdir -p /var/log/xray
+chown www-data:www-data /var/log/xray
+chmod +x /var/log/xray
+touch /var/log/xray/access.log
+touch /var/log/xray/error.log
+mkdir -p /var/lib/kyt >/dev/null 2>&1
+
 while IFS=":" read -r a b; do
 case $a in
     "MemTotal") ((mem_used+=${b/kB})); mem_total="${b/kB}" ;;
@@ -124,62 +138,109 @@ esac
 done < /proc/meminfo
 Ram_Usage="$((mem_used / 1024))"
 Ram_Total="$((mem_total / 1024))"
-
-function first_setup(){
-clear
-print_install "Create direktori xray"
-mkdir -p /etc/xray
-touch /etc/xray/domain
-mkdir -p /var/log/xray
-chown www-data.www-data /var/log/xray
-chmod +x /var/log/xray
-touch /var/log/xray/access.log
-touch /var/log/xray/error.log
-mkdir -p /var/lib/kyt >/dev/null 2>&1
 tanggal=`date -d "0 days" +"%d-%m-%Y - %X" `
 OS_Name=$( cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/PRETTY_NAME//g' | sed 's/=//g' | sed 's/"//g' )
 Kernel=$( uname -r )
 Arch=$( uname -m )
 IP=$( curl -sS ipv4.icanhazip.com )
+print_success "Create Direktori Xray"
+
+clear
+
+print_install "Instalasi Haproxy"
 timedatectl set-timezone Asia/Jakarta
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-print_success "Directory Xray"
+OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
+OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')
+echo "Setup Dependencies for $OS_NAME"
+# Update sebelum instalasi
+sudo apt update -y
+# Cek jika OS lebih baru dan membutuhkan libssl1.1
+if ! dpkg -s libssl1.1 >/dev/null 2>&1; then
+    echo "libssl1.1 tidak ditemukan, memeriksa kebutuhan instalasi..."
+    
+    # Cek versi Debian atau Ubuntu
+    if [[ $OS_ID == "ubuntu" ]]; then
+        UBUNTU_VERSION=$(grep -w VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+        if (( $(echo "$UBUNTU_VERSION >= 22.04" | bc -l) )); then
+            echo "Ubuntu $UBUNTU_VERSION terdeteksi, menambahkan repo untuk libssl1.1..."
+            echo "deb http://snapshot.debian.org/archive/debian/20210731T150000Z buster main" | sudo tee /etc/apt/sources.list.d/buster.list
+            sudo apt update
+            sudo apt install -y libssl1.1 --allow-downgrades
+        fi
+    elif [[ $OS_ID == "debian" ]]; then
+        DEBIAN_VERSION=$(grep -w VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+        if (( $(echo "$DEBIAN_VERSION >= 12" | bc -l) )); then
+            echo "Debian $DEBIAN_VERSION terdeteksi, menambahkan repo untuk libssl1.1..."
+            echo "deb http://snapshot.debian.org/archive/debian/20210731T150000Z buster main" | sudo tee /etc/apt/sources.list.d/buster.list
+            sudo apt update
+            sudo apt install -y libssl1.1 --allow-downgrades
+        fi
+    fi
+else
+    echo "libssl1.1 sudah terinstal atau tidak diperlukan."
+fi
+
+# Instalasi HAProxy
+if [[ $OS_ID == "ubuntu" ]]; then
+    echo "Menginstal HAProxy untuk Ubuntu..."
+    apt-get install --no-install-recommends software-properties-common -y
+    add-apt-repository ppa:vbernat/haproxy-2.0 -y
+    apt-get -y install haproxy=2.0.*
+elif [[ $OS_ID == "debian" ]]; then
+    echo "Menginstal HAProxy untuk Debian..."
+    curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-1.8 main > /etc/apt/sources.list.d/haproxy.list
+    sudo apt-get update
+    apt-get -y install haproxy=1.8.*
+else
+    echo -e "Your OS is not supported ($OS_NAME)"
+    exit 1
+fi
+print_success "Instalasi Haproxy"
 }
 
 function nginx_install() {
-    if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-        print_install "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-        sudo apt-get install nginx -y 
-    elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-        print_success "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-        apt -y install nginx 
-    else
-        echo -e " Your OS Is Not Supported ( ${YELLOW}$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')${FONT} )"
-    fi
+if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
+    print_install "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+
+    sudo apt-get install nginx -y 
+elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
+    print_success "Setup nginx For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"  
+    apt -y install nginx 
+else
+    echo -e "Your OS Is Not Supported ( ${YELLOW}$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')${FONT} )"
+
+fi
 }
 
 function base_package() {
 clear
+print_install "Instalasi Packet Yang Dibutuhkan"
+apt install zip pwgen openssl netcat socat cron bash-completion -y
+apt install figlet -y
 apt update -y
+apt upgrade -y
+apt dist-upgrade -y
+systemctl enable chronyd
+systemctl restart chronyd
+systemctl enable chrony
+systemctl restart chrony
+chronyc sourcestats -v
+chronyc tracking -v
+apt install ntpdate -y
+ntpdate pool.ntp.org
 apt install sudo -y
 sudo apt-get clean all
-apt install -y debconf-utils
-apt install p7zip-full at -y
-apt install haproxy -y
-apt-get remove --purge ufw firewalld -y
-apt-get remove --purge exim4 -y
-apt-get autoremove -y
-apt install -y --no-install-recommends software-properties-common
+sudo apt-get autoremove -y
+sudo apt-get install -y debconf-utils
+sudo apt-get remove --purge exim4 -y
+sudo apt-get remove --purge ufw firewalld -y
+sudo apt-get install -y --no-install-recommends software-properties-common
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-sudo DEBIAN_FRONTEND=noninteractive apt-get -y install iptables iptables-persistent netfilter-persistent libxml-parser-perl squid screen curl jq bzip2 gzip coreutils zip unzip net-tools sed bc apt-transport-https build-essential dirmngr libxml-parser-perl lsof openvpn easy-rsa fail2ban tmux squid dropbear socat cron bash-completion ntpdate xz-utils apt-transport-https chrony pkg-config bison make git speedtest-cli p7zip-full zlib1g-dev python-is-python3 python3-pip build-essential nginx p7zip-full squid libcurl4-openssl-dev
-sudo apt-get autoclean -y >/dev/null 2>&1
-audo apt-get -y --purge removd unscd >/dev/null 2>&1
-sudo apt-get -y --purge remove samba* >/dev/null 2>&1
-sudo apt-get -y --purge remove bind9* >/dev/null 2>&1
-sudo apt-get -y remove sendmail* >/dev/null 2>&1
-apt autoremove -y >/dev/null 2>&1
+sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
 print_success "Packet Yang Dibutuhkan"
 }
 
@@ -210,8 +271,10 @@ function pasang_domain() {
                 if [[ -z "$dom" ]]; then
                     echo "Domain tidak boleh kosong, masukkan domain yang valid."
                 else
+                    echo "$dom" > /root/scdomain 
                     echo "$dom" > /etc/xray/scdomain 
                     echo "$dom" > /etc/xray/domain 
+                    echo "$dom" > /root/domain 
                     print_success "Instalasi Domain"
                     break
                 fi
@@ -303,7 +366,7 @@ clear
 print_install "Instalasi SSL Pada Domain"
 rm -rf /etc/xray/xray.key
 rm -rf /etc/xray/xray.crt
-domain=$(cat /etc/xray/domain)
+domain=$(cat /root/domain)
 STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
 rm -rf /root/.acme.sh
 mkdir /root/.acme.sh
@@ -320,7 +383,6 @@ print_success "SSL Domain"
 }
 
 function make_folder_xray() {
-clear
 rm -rf /etc/vmess/.vmess.db
 rm -rf /etc/vless/.vless.db
 rm -rf /etc/trojan/.trojan.db
@@ -369,7 +431,7 @@ function install_xray() {
 clear
 print_install "Instalasi Core Xray 1.8.1 Latest Version"
 domainSock_dir="/run/xray";! [ -d $domainSock_dir ] && mkdir  $domainSock_dir
-chown www-data.www-data $domainSock_dir
+chown www-data:www-data $domainSock_dir
 
 latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version $latest_version
@@ -394,7 +456,7 @@ rm -rf /etc/systemd/system/xray.service.d
 cat > /etc/systemd/system/xray.service << EOF
 [Unit]
 Description=Xray Service
-Documentation=https://t.me/Gemilangkinasih
+Documentation=https://t.me/gemilangkinasih
 After=network.target nss-lookup.target
 
 [Service]
@@ -477,8 +539,8 @@ function udp_mini(){
 clear
 print_install "Instalasi Service Limit IP & Quota"
 wget -q -O /root/fv-tunnel ${REPO}sogokconfig/fv-tunnel
-chmod +x fv-tunnel
-bash fv-tunnel
+chmod +x /root/fv-tunnel
+bash /root/fv-tunnel
 
 clear
 # INSTALL PORT UDP MINI 7100,7200,7300
@@ -514,6 +576,7 @@ systemctl restart ssh
 print_success "Instalasi SSHD" 
 }
 
+clear
 function ins_dropbear(){
 clear
 print_install "Instalasi Dropbear In Process"
@@ -585,12 +648,11 @@ password ikoo rxjw dnzc mhxg
 logfile ~/.msmtp.log
 EOF
 chown -R www-data:www-data /etc/msmtprc
-wget -q -O /etc/ipserver "${REPO}sogokfiles/ipserver"
-chmod +x /etc/ipserver
-bash /etc/ipserver
+wget -q -O /etc/ipserver "${REPO}sogokfiles/ipserver" && bash /etc/ipserver
 print_success "Instalasi Backup Server" 
 }
 
+clear
 function ins_swab(){
 clear
 print_install "Instalasi Swap 1 G In Process"
@@ -647,13 +709,14 @@ print_success "Instalasi ePro WebSocket Proxy"
 }
 
 ins_udp() {
-clear
 cd
 mkdir -p /root/udp
 
+# change to time GMT+7
 echo "change to time GMT+7"
 ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
 
+# install udp-custom
 echo downloading udp-custom
 wget -q --show-progress --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1ixz82G_ruRBnEEp4vLPNF2KZ1k8UfrkV' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1ixz82G_ruRBnEEp4vLPNF2KZ1k8UfrkV" -O /root/udp/udp-custom && rm -rf /tmp/cookies.txt
 chmod +x /root/udp/udp-custom
@@ -863,6 +926,9 @@ instal
 rm -rf /root/menu
 rm -rf /root/*.zip
 rm -rf /root/*.sh
+rm /root/domain
+rm /root/scdomain
+rm /root/nsdomain
 clear
 echo "" | tee -a /root/install.log
 echo "░██████╗░█████╗░░██████╗░░█████╗░██╗░░██╗"| tee -a /root/install.log
