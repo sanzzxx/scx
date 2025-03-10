@@ -174,40 +174,48 @@ apt autoremove -y >/dev/null 2>&1
 print_success "Packet Yang Dibutuhkan"
 }
 
-function haproxy_install(){
+function haproxy_install() {
 clear
-OS_ID=$(grep -w ID /etc/os-release | cut -d= -f2 | tr -d '"')
-OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')
-echo "Setup Dependencies for $OS_NAME"
-# Update sebelum instalasi
-sudo apt update -y
-# Cek jika OS lebih baru dan membutuhkan libssl1.1
-if ! dpkg -s libssl1.1 >/dev/null 2>&1; then
-    echo "libssl1.1 tidak ditemukan, memeriksa kebutuhan instalasi..."
-    echo "deb http://snapshot.debian.org/archive/debian/20210731T150000Z buster main" | sudo tee /etc/apt/sources.list.d/buster.list
-    sudo apt update
-    sudo apt install -y libssl1.1 --allow-downgrades
+OS_ID=$(grep -w ID /etc/os-release | cut -d'=' -f2 | tr -d '"')
+OS_NAME=$(grep -w PRETTY_NAME /etc/os-release | cut -d'=' -f2 | tr -d '"')
+if [[ "$OS_ID" == "ubuntu" ]]; then
+print_install "Setup Haproxy For $OS_NAME"
+sudo apt update
+sudo apt install haproxy -y
+rm -rf /usr/sbin/haproxy
+wget -q -O /usr/sbin/haproxy "https://drive.google.com/uc?export=download&id=1fxVqZmave8oe2_o_trNmJVJmq9N2I9xV"
+chmod +x /usr/sbin/haproxy
+sudo rm -rf /usr/lib/x86_64-linux-gnu/liblua5.3.so.0
+wget http://archive.ubuntu.com/ubuntu/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1.1ubuntu2_amd64.deb
+sudo dpkg -i liblua5.3-0_5.3.3-1.1ubuntu2_amd64.deb
+rm -rf liblua5.3-0_5.3.3-1.1ubuntu2_amd64.deb
+wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+rm -rf libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+sudo ldconfig
+clear
+print_success "Haproxy For OS $OS_NAME"
+elif [[ "$OS_ID" == "debian" ]]; then
+print_install "Setup Haproxy For $OS_NAME"
+sudo apt-get update
+sudo apt-get install -y haproxy
+rm -rf /usr/sbin/haproxy
+wget -q -O /usr/sbin/haproxy "https://drive.google.com/uc?export=download&id=1pwOtx07luCBpnc4camnhQ-EIAQXquY7u"
+chmod +x /usr/sbin/haproxy
+sudo rm -rf /usr/lib/x86_64-linux-gnu/liblua5.3.so.0
+wget http://ftp.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1.1_amd64.deb
+sudo dpkg -i liblua5.3-0_5.3.3-1.1_amd64.deb
+rm -rf liblua5.3-0_5.3.3-1.1_amd64.deb
+wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.1n-0+deb10u6_amd64.deb
+sudo dpkg -i libssl1.1_1.1.1n-0+deb10u6_amd64.deb
+rm -rf libssl1.1_1.1.1n-0+deb10u6_amd64.deb
+sudo ldconfig
+clear
+print_success "Haproxy For OS $OS_NAME"
 else
-    echo "libssl1.1 sudah terinstal atau tidak diperlukan."
+echo -e "Your OS ($OS_NAME) is not supported."
+exit 1
 fi
-
-# Instalasi HAProxy
-if [[ $OS_ID == "ubuntu" ]]; then
-    echo "Menginstal Haproxy untuk Ubuntu..."
-    apt-get install --no-install-recommends software-properties-common -y
-    add-apt-repository ppa:vbernat/haproxy-2.0 -y
-    apt-get -y install haproxy=2.0.*
-elif [[ $OS_ID == "debian" ]]; then
-    echo "Menginstal Haproxy untuk Debian..."
-    curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-    echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-1.8 main > /etc/apt/sources.list.d/haproxy.list
-    sudo apt-get update
-    apt-get -y install haproxy=1.8.*
-else
-    echo -e "Your OS is not supported ($OS_NAME)"
-    exit 1
-fi
-print_success "Instalasi Haproxy"
 }
 
 function pasang_domain() {
