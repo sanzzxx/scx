@@ -117,9 +117,10 @@ fi
 function first_setup(){
 print_install "Membuat direktori xray"
 mkdir -p /etc/xray
+curl -s ipv4.icanhazip.com > /etc/xray/ipvps
 touch /etc/xray/domain
 mkdir -p /var/log/xray
-chown www-data.www-data /var/log/xray
+chown www-data:www-data /var/log/xray
 chmod +x /var/log/xray
 touch /var/log/xray/access.log
 touch /var/log/xray/error.log
@@ -674,6 +675,7 @@ print_success "Instalasi ePro WebSocket Proxy"
 }
 
 ins_udp() {
+clear
 cd
 mkdir -p /root/udp
 
