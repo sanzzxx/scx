@@ -206,9 +206,9 @@ sudo rm -rf /usr/lib/x86_64-linux-gnu/liblua5.3.so.0
 wget http://ftp.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1.1_amd64.deb
 sudo dpkg -i liblua5.3-0_5.3.3-1.1_amd64.deb
 rm -rf liblua5.3-0_5.3.3-1.1_amd64.deb
-wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.1n-0+deb10u6_amd64.deb
-sudo dpkg -i libssl1.1_1.1.1n-0+deb10u6_amd64.deb
-rm -rf libssl1.1_1.1.1n-0+deb10u6_amd64.deb
+wget http://security.debian.org/debian-security/pool/main/o/openssl/libssl1.1_1.1.1n-0+deb10u4_amd64.deb
+sudo dpkg -i libssl1.1_1.1.1n-0+deb10u4_amd64.deb
+rm -rf libssl1.1_1.1.1n-0+deb10u4_amd64.deb
 sudo ldconfig
 clear
 print_success "Haproxy For OS $OS_NAME"
